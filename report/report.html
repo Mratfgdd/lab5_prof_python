@@ -1,0 +1,432 @@
+<!doctype html><html lang='uk'><head><meta charset='utf-8'><title>Звіт ЛР5</title><style>
+@page { size: A4; margin: 20mm 15mm 20mm 30mm;
+  @bottom-center { content: counter(page); font: 12pt "Times New Roman", serif; } }
+@page :first { @bottom-center { content: none; } }
+html { background: #fff; }
+body { margin: 0; color: #000; background: #fff; font-family: "Times New Roman", serif;
+  font-size: 14pt; line-height: 1.2; }
+p { margin: 0 0 2pt; text-indent: 1.25cm; text-align: justify; }
+h1 { font-size: 14pt; text-align: center; margin: 9pt 0 4pt; break-after: avoid; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 0.8em; }
+pre.code { font-family: Consolas, "Courier New", monospace; font-size: 8pt;
+  line-height: 1.12; margin: 2pt 0 5pt; padding: 3pt 8pt; white-space: pre-wrap;
+  background: #f6f6f4; border-left: 3px solid #c3c2b7; orphans: 4; widows: 4; }
+pre.keep { break-inside: avoid; }
+.term { font-family: Consolas, "Courier New", monospace; font-size: 7.4pt; line-height: 1.15;
+  white-space: pre-wrap; background: #0c0c0c; color: #d4d4d4; padding: 4pt 8pt;
+  border-radius: 4px; margin: 2pt 0 3pt; orphans: 4; widows: 4; }
+.term .ps { color: #f9f1a5; }
+table { width: 100%; border-collapse: collapse; font-size: 10.5pt; line-height: 1.13;
+  margin: 2pt 0 5pt; }
+th, td { border: 1px solid #000; padding: 1.5pt 4pt; vertical-align: top; text-align: left; }
+th { background: #f0efec; }
+table.num td { text-align: right; white-space: nowrap; }
+table.num td:first-child { text-align: left; }
+tr { break-inside: avoid; }
+.tcap { text-indent: 0; text-align: left; margin: 4pt 0 2pt; break-after: avoid; }
+.fcap { text-indent: 0; text-align: center; margin: 1pt 0 5pt; }
+.title { height: 255mm; display: flex; flex-direction: column; justify-content: space-between;
+  text-align: center; break-after: page; line-height: 1.5; }
+.title .main { margin-top: 30mm; }
+.title .main .big { font-size: 20pt; font-weight: bold; letter-spacing: 2pt; }
+.title .main .theme { font-size: 16pt; font-weight: bold; margin-top: 10pt; }
+.title .sign { align-self: flex-end; text-align: left; width: 85mm; margin-top: 30mm; }
+.title .city { margin-top: auto; }
+</style></head><body>
+<section class="title">
+  <div>МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ<br>
+  Львівський національний університет імені Івана Франка</div>
+  <div class="main">
+    <div class="big">ЗВІТ</div>
+    <div>до лабораторної роботи №5</div>
+    <div>з дисципліни «Професійний Python»</div>
+    <div class="theme">Тема: «Обробка помилок, файли та серіалізація»</div>
+  </div>
+  <div class="sign">Виконав:<br>студент Левандівський Назар<br><br>
+  Перевірив:<br>Куньо Іван Михайлович</div>
+  <div class="city">Львів – 2026</div>
+</section>
+<h1>Мета роботи</h1>
+<p>Навчитися створювати надійні програми, що передбачувано поводяться з помилками, файлами, конфігурацією та структурованими форматами: власна ієрархія винятків, exception chaining, context managers, logging, pathlib, CSV/JSON/YAML, streaming I/O, атомарний запис і валідація зовнішніх даних.</p>
+<h1>1. Постановка задачі</h1>
+<p><b>Варіант 1. Імпорт та експорт даних системи обліку студентів</b> (продовження ЛР1–ЛР4). Поля: <code>student_id, first_name, last_name, group, average_grade</code>. Перевіряти ID, ПІБ і групу, <code>average_grade</code> у межах 0–100. Реалізувати CSV streaming import, strict/tolerant mode, JSON export, YAML configuration з мінімальним середнім балом, статистику valid/invalid і logging некоректних записів.</p>
+<p class="tcap">Таблиця 1 – Схема вхідних даних і правила перевірки</p>
+<table class=""><thead><tr><th>Поле</th><th>Тип</th><th>Правило</th><th>Код помилки</th></tr></thead><tbody><tr><td>student_id</td><td>int</td><td>ціле число ≥ 1</td><td>bad_id, missing_field</td></tr><tr><td>first_name, last_name</td><td>str</td><td>непорожні; літери, дефіс, апостроф, пробіл</td><td>missing_field, bad_name</td></tr><tr><td>group</td><td>str</td><td>відповідає <code>group_pattern</code> із config (PI-21)</td><td>bad_group</td></tr><tr><td>average_grade</td><td>Decimal</td><td>число від 0 до 100, округлення до сотих</td><td>bad_number, grade_out_of_range</td></tr></tbody></table>
+<p>Приклад <code>data/students.csv</code>: 20 записів, із них 7 некоректних і 2 коректні, але нижчі за мінімальний бал 60 (перші 9 рядків):</p>
+<pre class="code keep">student_id,first_name,last_name,group,average_grade
+1,Анна,Коваль,PI-21,91.5
+2,Олег,Мельник,PI-21,84.0
+3,Ірина,Бондар,PI-22,95.2
+4,,Шевченко,PI-21,88.7
+5,Марія,Бойко,PI-22,105
+abc,Тарас,Гриценко,PI-23,72.4
+7,Софія,Гнатюк,PI-22,66.8
+8,Дмитро,Ткаченко,PI-2,58.9</pre>
+<h1>2. Структура проєкту та ієрархія винятків</h1>
+<pre class="code keep">Lab_05/  config.yaml, pyproject.toml, README.md
+├── data/          students.csv | .jsonl | .yaml
+├── output/  logs/ (створюються програмою)
+├── src/reliable_importer/  exceptions, config, logging_config, readers,
+│                           validators, exporters, services, utils, models, main
+├── tests/         37 тестів (unittest)
+└── experiments/   run_experiments.py -&gt; results/</pre>
+<p>Усі очікувані помилки успадковують <code>ApplicationError</code>, тому <code>main()</code> відрізняє їх від непередбачених (код 1 проти 2). <code>RecordValidationError</code> несе номер рядка, поле й код, але не значення полів: повідомлення безпечно писати в log.</p>
+<pre class="code keep">ApplicationError
+├── ConfigurationError
+└── DataError
+    ├── DataImportError
+    │   └── UnsupportedFormatError
+    ├── RecordValidationError
+    └── DataExportError</pre>
+<pre class="code keep">class RecordValidationError(DataError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        line_number: int | None = None,
+        field: str | None = None,
+        code: str = "invalid",
+    ) -&gt; None:
+        super().__init__(message)
+        self.message = message
+        self.line_number = line_number
+        self.field = field
+        self.code = code
+
+    def __str__(self) -&gt; str:
+        where = f"рядок {self.line_number}" if self.line_number is not None else "запис"
+        column = f", поле {self.field!r}" if self.field else ""
+        return f"{where}{column}: {self.message} [{self.code}]"</pre>
+<p><b>Exception chaining.</b> Технічна помилка розбору числа перетворюється на доменну через <code>raise ... from error</code>, і оригінальна причина зберігається в <code>__cause__</code>. Для оцінки <code>wrong</code> причиною є <code>decimal.InvalidOperation</code>, для ідентифікатора <code>abc</code> – <code>ValueError</code> (обидва випадки перевіряють тести). Traceback експерименту 3 показує обидві ланки:</p>
+<pre class="code">@staticmethod
+def _grade(row: RawRow, line_number: int) -&gt; Decimal:
+    value = row.get("average_grade")
+    if value is None or isinstance(value, bool):
+        raise RecordValidationError(
+            "поле відсутнє",
+            line_number=line_number,
+            field="average_grade",
+            code="missing_field",
+        )
+    try:
+        grade = Decimal(str(value).strip())
+    except InvalidOperation as error:
+        raise RecordValidationError(
+            "значення не є числом",
+            line_number=line_number,
+            field="average_grade",
+            code="bad_number",
+        ) from error
+    if not grade.is_finite():
+        raise RecordValidationError(
+            "значення не є скінченним числом",
+            line_number=line_number,
+            field="average_grade",
+            code="bad_number",
+        )
+    if not 0 &lt;= grade &lt;= 100:
+        raise RecordValidationError(
+            "середній бал має бути від 0 до 100",
+            line_number=line_number,
+            field="average_grade",
+            code="grade_out_of_range",
+        )
+    return grade.quantize(HUNDREDTH, ROUND_HALF_UP)</pre>
+<div class="term"><span class="ps">PS C:\Github\prof_python\Lab_05&gt;</span> python experiments/chaining_demo.py
+Traceback (most recent call last):
+  File "src\reliable_importer\validators.py", line 91, in _grade
+    grade = Decimal(str(value).strip())
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+decimal.InvalidOperation: [&lt;class 'decimal.ConversionSyntax'&gt;]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "experiments\chaining_demo.py", line 22, in &lt;module&gt;
+    RecordValidator(CONFIG).validate(2, ROW)
+  File "src\reliable_importer\validators.py", line 29, in validate
+    grade = self._grade(row, line_number)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "src\reliable_importer\validators.py", line 93, in _grade
+    raise RecordValidationError(
+reliable_importer.exceptions.RecordValidationError: рядок 2, поле 'average_grade': значення не є числом [bad_number]</div>
+<h1>3. Конфігурація</h1>
+<pre class="code">schema_version: 1
+
+input:
+  path: data/students.csv
+  format: auto
+
+output:
+  path: output/students.json
+  format: json
+  errors_path: output/errors.csv
+  summary_path: output/summary.json
+  backup: true
+
+processing:
+  skip_invalid: true
+  minimum_grade: 60
+  group_pattern: 'PI-\d{2}'
+  progress_every: 10000
+
+logging:
+  level: INFO
+  path: logs/application.log
+  max_bytes: 1048576
+  backup_count: 3</pre>
+<p><code>load_config</code> читає YAML через <code>safe_load</code>, застосовує змінні середовища (<code>STUDENTIO_SKIP_INVALID</code>, <code>STUDENTIO_MINIMUM_GRADE</code> тощо), будує frozen dataclass і перетворює всі технічні помилки на <code>ConfigurationError</code> із chaining. <code>validate_config</code> (fail-fast) перевіряє версію схеми, <code>minimum_grade</code> у межах 0–100, формати, рівень логування, наявність вхідного файла й те, що вхід і вихід не збігаються. Параметр <code>minimum_grade</code> керує експортом: студенти з нижчим балом вважаються коректними, але до JSON не потрапляють.</p>
+<pre class="code">def load_config(path: Path, environ: Mapping[str, str] | None = None) -&gt; AppConfig:
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            raw = yaml.safe_load(file)
+    except FileNotFoundError as error:
+        raise ConfigurationError(f"Файл конфігурації не знайдено: {path}") from error
+    except yaml.YAMLError as error:
+        raise ConfigurationError(f"Некоректний YAML у {path.name}") from error
+    except (OSError, UnicodeDecodeError) as error:
+        raise ConfigurationError(f"Не вдалося прочитати {path}") from error
+
+    if not isinstance(raw, dict):
+        raise ConfigurationError("Корінь конфігурації має бути словником")
+    apply_env_overrides(raw, os.environ if environ is None else environ)
+    try:
+        config = _build(raw, base=path.resolve().parent)
+    except (KeyError, TypeError, ValueError, InvalidOperation, re.error) as error:
+        raise ConfigurationError(f"Некоректна структура конфігурації: {error!r}") from error
+    validate_config(config)
+    return config</pre>
+<h1>4. Logging</h1>
+<p>Лог пишеться у файл із ротацією (<code>RotatingFileHandler</code>) і в консоль. Повідомлення про некоректні записи містять лише номер рядка, поле, причину й код помилки, але не значення полів: імена студентів у log не потрапляють (це перевірено на справжньому файлі log під час генерації звіту й тестом). Приклад log – у розділі 7.</p>
+<pre class="code">def configure_logging(config: LoggingConfig) -&gt; None:
+    config.path.parent.mkdir(parents=True, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        config.path,
+        maxBytes=config.max_bytes,
+        backupCount=config.backup_count,
+        encoding="utf-8",
+    )
+    console_handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(FORMAT)
+    for handler in (file_handler, console_handler):
+        handler.setFormatter(formatter)
+    logging.basicConfig(
+        level=getattr(logging, config.level),
+        handlers=[file_handler, console_handler],
+        force=True,
+    )
+
+@contextmanager
+def logged_operation(operation: str) -&gt; Iterator[None]:
+    logger.info("%s: початок", operation)
+    start = time.perf_counter()
+    try:
+        yield
+    except Exception:
+        logger.error("%s: перервано через %.3f с", operation, time.perf_counter() - start)
+        raise
+    else:
+        logger.info("%s: завершено за %.3f с", operation, time.perf_counter() - start)</pre>
+<h1>5. Streaming reader, validation, strict / tolerant</h1>
+<p>Єдиний інтерфейс <code>Importer</code> (Protocol) має реалізації для CSV, JSON Lines (потокові), JSON і YAML (читаються цілком); формат обирається за розширенням. CSV читається рядок за рядком, а технічні помилки файлової системи, кодування та синтаксису перетворюються на <code>DataImportError</code>:</p>
+<pre class="code">def read(self, path: Path) -&gt; RowStream:
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as file:
+            reader = csv.DictReader(file)
+            missing = set(REQUIRED_COLUMNS) - set(reader.fieldnames or ())
+            if missing:
+                raise DataImportError(f"{path.name}: бракує колонок {sorted(missing)}")
+            for row in reader:
+                yield reader.line_num, dict(row)
+    except FileNotFoundError as error:
+        raise DataImportError(f"Вхідний файл не знайдено: {path.name}") from error
+    except UnicodeDecodeError as error:
+        raise DataImportError(f"{path.name}: файл не в кодуванні UTF-8") from error
+    except csv.Error as error:
+        raise DataImportError(f"{path.name}: пошкоджений CSV") from error
+    except OSError as error:
+        raise DataImportError(f"Не вдалося прочитати {path.name}") from error</pre>
+<p>Валідатор перевіряє поля у фіксованому порядку, правила беруться з конфігурації:</p>
+<pre class="code">def validate(self, line_number: int, row: RawRow) -&gt; StudentRecord:
+    student_id = self._student_id(row, line_number)
+    first_name = self._name(row, "first_name", line_number)
+    last_name = self._name(row, "last_name", line_number)
+    group = self._text(row, "group", line_number)
+    if not self._config.group_pattern.fullmatch(group):
+        raise RecordValidationError(
+            "код групи не відповідає формату",
+            line_number=line_number,
+            field="group",
+            code="bad_group",
+        )
+    grade = self._grade(row, line_number)
+    return StudentRecord(line_number, student_id, first_name, last_name, group, grade)
+
+@staticmethod
+def _student_id(row: RawRow, line_number: int) -&gt; int:
+    value = row.get("student_id")
+    if value is None or isinstance(value, bool):
+        raise RecordValidationError(
+            "поле відсутнє", line_number=line_number, field="student_id", code="missing_field"
+        )
+    try:
+        student_id = int(str(value).strip())
+    except ValueError as error:
+        raise RecordValidationError(
+            "ідентифікатор не є цілим числом",
+            line_number=line_number,
+            field="student_id",
+            code="bad_id",
+        ) from error
+    if student_id &lt; 1:
+        raise RecordValidationError(
+            "ідентифікатор має бути додатним",
+            line_number=line_number,
+            field="student_id",
+            code="bad_id",
+        )
+    return student_id</pre>
+<p>Поведінку з некоректним записом визначає об'єкт-політика: strict піднімає виняток (fail-fast), tolerant пише warning у log і рядок в <code>errors.csv</code>. Генератори <code>import_records</code> і <code>filter_by_grade</code> ведуть статистику й віддають записи по одному:</p>
+<pre class="code">class StrictPolicy:
+    def on_invalid(self, error: RecordValidationError, row: RawRow) -&gt; None:
+        raise error
+
+class TolerantPolicy:
+    def __init__(self, report: ErrorReport) -&gt; None:
+        self._report = report
+
+    def on_invalid(self, error: RecordValidationError, row: RawRow) -&gt; None:
+        logger.warning("Некоректний запис пропущено: %s", error)
+        self._report.add(error, row.get("student_id"))
+
+def import_records(
+    rows: Iterable[tuple[int, RawRow]],
+    validator: RecordValidator,
+    policy: ValidationPolicy,
+    stats: ImportStatistics,
+    progress_every: int = 10_000,
+) -&gt; Generator[StudentRecord, None, None]:
+    for line_number, row in rows:
+        stats.total += 1
+        try:
+            record = validator.validate(line_number, row)
+        except RecordValidationError as error:
+            stats.invalid += 1
+            stats.errors[error.code] += 1
+            policy.on_invalid(error, row)
+        else:
+            stats.valid += 1
+            yield record
+        if stats.total % progress_every == 0:
+            logger.info("Прогрес: %d записів (некоректних %d)", stats.total, stats.invalid)
+
+def filter_by_grade(
+    records: Iterable[StudentRecord],
+    minimum_grade: Decimal,
+    stats: ImportStatistics,
+    groups: Counter[str],
+) -&gt; Generator[StudentRecord, None, None]:
+    for record in records:
+        if record.average_grade &lt; minimum_grade:
+            stats.below_minimum += 1
+            continue
+        groups[record.group] += 1
+        yield record</pre>
+<h1>6. JSON serialization, atomic export, context managers</h1>
+<p><code>JsonExporter</code> пише JSON-масив потоково, а Decimal серіалізується числом (custom encoder): оцінка має не більше двох знаків, тому <code>float</code> її не спотворює. <code>AtomicWriter</code> – власний class-based context manager: дані пишуться у тимчасовий файл у тому ж каталозі; лише після успішного блоку with виконуються <code>fsync</code>, резервна копія <code>.bak</code> і атомарний <code>os.replace</code> (з <code>retry</code> на випадок тимчасового блокування файла у Windows); при винятку тимчасовий файл видаляється. Generator-based <code>logged_operation</code> журналює тривалість операції.</p>
+<pre class="code keep">class DecimalJSONEncoder(json.JSONEncoder):
+    def default(self, o: object) -&gt; object:
+        if isinstance(o, Decimal):
+            return float(o)
+        return super().default(o)
+
+class JsonExporter:
+    def write(self, records: Iterable[StudentRecord], file: TextIO) -&gt; int:
+        count = 0
+        file.write("[")
+        for record in records:
+            file.write(",\n  " if count else "\n  ")
+            file.write(json.dumps(record.to_dict(), cls=DecimalJSONEncoder, ensure_ascii=False))
+            count += 1
+        file.write("\n]\n" if count else "]\n")
+        return count</pre>
+<pre class="code">def __exit__(
+    self,
+    exc_type: type[BaseException] | None,
+    exc: BaseException | None,
+    traceback: TracebackType | None,
+) -&gt; None:
+    assert self._file is not None and self._temp is not None
+    try:
+        try:
+            if exc_type is None:
+                self._file.flush()
+                os.fsync(self._file.fileno())
+        finally:
+            self._file.close()
+        if exc_type is not None:
+            logger.warning("%s: запис скасовано, тимчасовий файл видалено", self.path.name)
+            return
+        if self.backup and self.path.exists():
+            shutil.copy2(self.path, self.path.with_name(self.path.name + ".bak"))
+        replace_file(self._temp, self.path)
+    except OSError as error:
+        raise DataExportError(f"Неможливо записати {self.path.name}") from error
+    finally:
+        self._temp.unlink(missing_ok=True)</pre>
+<p>У <code>run_import_export</code> писачі й генератори реєструються в <code>ExitStack</code>, причому генератори – через <code>contextlib.closing</code>: при зупинці strict-режиму посередині файла вхідний CSV закривається одразу, а не після збирання сміття (у Windows відкритий файл не можна видалити; це перевіряє тест <code>test_strict_abort_releases_input_file</code>).</p>
+<h1>7. Виконання програми</h1>
+<div class="term"><span class="ps">PS C:\Github\prof_python\Lab_05&gt;</span> python -m reliable_importer.main
+2026-11-09 13:36:19,108 | INFO    | reliable_importer.utils | Імпорт/експорт студентів: початок
+2026-11-09 13:36:19,108 | INFO    | reliable_importer.services | Імпорт students.csv (режим tolerant)
+2026-11-09 13:36:19,108 | INFO    | reliable_importer.exporters | Створюється каталог для students.json
+2026-11-09 13:36:19,109 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 5, поле 'first_name': поле відсутнє або порожнє [missing_field]
+2026-11-09 13:36:19,109 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 6, поле 'average_grade': середній бал має бути від 0 до 100 [grade_out_of_range]
+2026-11-09 13:36:19,113 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 7, поле 'student_id': ідентифікатор не є цілим числом [bad_id]
+2026-11-09 13:36:19,113 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 9, поле 'group': код групи не відповідає формату [bad_group]
+2026-11-09 13:36:19,113 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 12, поле 'average_grade': значення не є числом [bad_number]
+2026-11-09 13:36:19,113 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 15, поле 'first_name': ім'я містить недозволені символи [bad_name]
+2026-11-09 13:36:19,113 | WARNING | reliable_importer.services | Некоректний запис пропущено: рядок 18, поле 'average_grade': середній бал має бути від 0 до 100 [grade_out_of_range]
+2026-11-09 13:36:19,124 | INFO    | reliable_importer.utils | Імпорт/експорт студентів: завершено за 0.016 с
+2026-11-09 13:36:19,124 | INFO    | reliable_importer | Підсумок: total=20, valid=13, invalid=7, below_minimum=2, exported=11, помилки={'missing_field': 1, 'grade_out_of_range': 2, 'bad_id': 1, 'bad_group': 1, 'bad_number': 1, 'bad_name': 1}</div>
+<p class="fcap">Рисунок 1 – Tolerant mode: 20 записів, 11 експортовано, 7 некоректних, 2 нижче мінімуму</p>
+<div class="term"><span class="ps">PS C:\Github\prof_python\Lab_05&gt;</span> $env:STUDENTIO_SKIP_INVALID = "false"; python -m reliable_importer.main
+2026-11-09 13:36:19,252 | INFO    | reliable_importer.config | Параметр processing.skip_invalid перевизначено змінною STUDENTIO_SKIP_INVALID
+2026-11-09 13:36:19,253 | INFO    | reliable_importer.utils | Імпорт/експорт студентів: початок
+2026-11-09 13:36:19,253 | INFO    | reliable_importer.services | Імпорт students.csv (режим strict)
+2026-11-09 13:36:19,254 | WARNING | reliable_importer.exporters | errors.csv: запис скасовано, тимчасовий файл видалено
+2026-11-09 13:36:19,254 | WARNING | reliable_importer.exporters | students.json: запис скасовано, тимчасовий файл видалено
+2026-11-09 13:36:19,255 | ERROR   | reliable_importer.utils | Імпорт/експорт студентів: перервано через 0.002 с
+2026-11-09 13:36:19,255 | ERROR   | reliable_importer | Помилка застосунку: рядок 5, поле 'first_name': поле відсутнє або порожнє [missing_field]
+2026-11-09 13:36:19,255 | ERROR   | reliable_importer | Оброблено до зупинки: {'total': 4, 'valid': 3, 'invalid': 1, 'below_minimum': 0, 'exported': 0, 'errors_by_code': {'missing_field': 1}, 'exported_by_group': {}}; вихідні файли не змінено</div>
+<p class="fcap">Рисунок 2 – Strict mode через змінну середовища: зупинка на рядку 5, вихідні файли не змінено, exit code 1</p>
+<p>Ті самі рядки записано у <code>logs/application.log</code>. Нижче – <code>output/errors.csv</code>, початок <code>output/students.json</code> і <code>summary.json</code> після tolerant-запуску:</p>
+<pre class="code keep">line,student_id,field,code,message
+5,4,first_name,missing_field,поле відсутнє або порожнє
+6,5,average_grade,grade_out_of_range,середній бал має бути від 0 до 100
+7,abc,student_id,bad_id,ідентифікатор не є цілим числом
+9,8,group,bad_group,код групи не відповідає формату
+12,11,average_grade,bad_number,значення не є числом
+15,14,first_name,bad_name,ім'я містить недозволені символи
+18,17,average_grade,grade_out_of_range,середній бал має бути від 0 до 100</pre>
+<pre class="code keep">[
+  {"student_id": 1, "first_name": "Анна", "last_name": "Коваль", "group": "PI-21", "average_grade": 91.5},
+  {"student_id": 2, "first_name": "Олег", "last_name": "Мельник", "group": "PI-21", "average_grade": 84.0},
+  ...
+
+{"input": "students.csv", "mode": "tolerant", "total": 20, "valid": 13, "invalid": 7, "below_minimum": 2, "exported": 11, "errors_by_code": {"missing_field": 1, "grade_out_of_range": 2, "bad_id": 1, "bad_group": 1, "bad_number": 1, "bad_name": 1}, "exported_by_group": {"PI-21": 3, "PI-22": 4, "PI-23": 2, "PI-24": 2}}</pre>
+<h1>8. Експерименти</h1>
+<p class="tcap">Таблиця 2 – Експеримент 1: 1000 валідних + 10 некоректних записів</p>
+<table class=""><thead><tr><th>Параметр</th><th>Strict</th><th>Tolerant</th></tr></thead><tbody><tr><td>Оброблено записів</td><td>51</td><td>1010</td></tr><tr><td>Valid</td><td>50</td><td>1000</td></tr><tr><td>Invalid</td><td>1</td><td>10</td></tr><tr><td>Exported</td><td>0</td><td>1000</td></tr><tr><td>Завершення application</td><td>exit 1: зупинка: рядок 52, поле 'group': код групи не відповідає формату [bad_group]; output не створено</td><td>exit 0: успішно</td></tr></tbody></table>
+<p>Strict доцільний там, де частковий імпорт неприпустимий (наприклад, нарахування за оцінками): краще не імпортувати нічого, ніж половину. Tolerant – для масових даних, де некоректні рядки виправляють окремо за <code>errors.csv</code>.</p>
+<p class="tcap">Таблиця 3 – Експеримент 2: streaming vs eager (час – найкращий із 3 почергових запусків, пам'ять – пік tracemalloc)</p>
+<table class="num"><thead><tr><th>Records</th><th>Eager time, с</th><th>Streaming time, с</th><th>Streaming / eager</th><th>Eager peak RAM, МБ</th><th>Streaming peak RAM, МБ</th></tr></thead><tbody><tr><td>10 000</td><td>0.070</td><td>0.066</td><td>0.94</td><td>8.8</td><td>0.10</td></tr><tr><td>100 000</td><td>0.733</td><td>0.649</td><td>0.89</td><td>87.0</td><td>0.10</td></tr><tr><td>500 000</td><td>3.842</td><td>3.245</td><td>0.84</td><td>435.5</td><td>0.10</td></tr></tbody></table>
+<p>Пам'ять eager росте лінійно (8.8 → 435.5 МБ), streaming залишається ≈0.10 МБ – у 4 183 рази менше на 500 000 записів. За часом на 10 000 записів streaming швидший (streaming/eager = 0.94), на 500 000 записів – швидший (streaming/eager = 0.84): парсинг, перевірка й серіалізація в обох варіантах однакові, тому виграш у часі не гарантований, а в пам'яті – гарантований. Заміри часу робилися почергово (A, B, A, B), щоб зміна частоти процесора впливала на обидва варіанти однаково.</p>
+<p><b>Експеримент 4 (atomic output).</b> Після успішного експорту запущено експорт із exporter, що падає з <code>OSError</code> на 6-му записі. Результат: <code>DataExportError: Помилка запису students.json &lt;- OSError</code>; попередній файл не змінено (SHA-256 збігається); тимчасових файлів: 0; у log – «students.json: запис скасовано, тимчасовий файл видалено». <code>DataExportError</code> – нащадок <code>ApplicationError</code>, тому <code>main()</code> перехоплює його й повертає код 1.</p>
+<p class="tcap">Таблиця 4 – Експеримент 5: помилки конфігурації</p>
+<table class=""><thead><tr><th>Випадок</th><th>Exit</th><th>Повідомлення в log</th></tr></thead><tbody><tr><td>відсутній config.yaml</td><td>1</td><td>Помилка застосунку: Файл конфігурації не знайдено: data\generated\exp5\absent.yaml (причина: FileNotFoundError)</td></tr><tr><td>неправильний YAML</td><td>1</td><td>Помилка застосунку: Некоректний YAML у broken.yaml (причина: ParserError)</td></tr><tr><td>немає ключа input</td><td>1</td><td>Помилка застосунку: Некоректна структура конфігурації: KeyError('input') (причина: KeyError)</td></tr><tr><td>minimum_grade = 150</td><td>1</td><td>Помилка застосунку: minimum_grade має бути числом від 0 до 100</td></tr><tr><td>input file відсутній</td><td>1</td><td>Помилка застосунку: Вхідний файл не знайдено: nope.csv</td></tr><tr><td>output directory не існує</td><td>0</td><td>Створюється каталог для students.json</td></tr></tbody></table>
+<h1>9. Перевірка правильності</h1>
+<p>37 тестів перевіряють завантаження й семантичну перевірку конфігурації (13 некоректних випадків, змінні середовища, межі minimum_grade), кожен код помилки валідатора та граничні значення, chaining, відсутність значень у повідомленнях, усі формати й зламані файли, strict/tolerant, фільтр за мінімальним балом, атомарність, backup, retry, відсутність імен у log і коди завершення <code>main</code>.</p>
+<table class=""><thead><tr><th>Перевірка</th><th>Результат</th></tr></thead><tbody><tr><td><code>python -m unittest discover -s tests</code></td><td>Ran 37 tests in 1.340s — OK</td></tr><tr><td><code>mypy  (strict, src + tests)</code></td><td>Success: no issues found in 14 source files</td></tr><tr><td><code>ruff check src tests</code></td><td>All checks passed!</td></tr></tbody></table>
+<h1>Висновки</h1>
+<p>Створено надійний модуль імпорту/експорту студентів: дані перевіряються на межі системи, кожна очікувана помилка має свій тип і код, причина зберігається через chaining, ресурси звільняють context managers, а атомарний запис, як показав експеримент, не пошкоджує попередній output. Поведінка (strict/tolerant, мінімальний бал, формати) змінюється через YAML або змінні середовища без редагування коду, log не містить персональних даних, а streaming тримає пам'ять сталою незалежно від розміру файла.</p></body></html>
