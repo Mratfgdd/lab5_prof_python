@@ -1,0 +1,24 @@
+schema_version: 1
+
+input:
+  path: data/students.csv
+  format: auto
+
+output:
+  path: output/students.json
+  format: json
+  errors_path: output/errors.csv
+  summary_path: output/summary.json
+  backup: true
+
+processing:
+  skip_invalid: true
+  minimum_grade: 60
+  group_pattern: 'PI-\d{2}'
+  progress_every: 10000
+
+logging:
+  level: INFO
+  path: logs/application.log
+  max_bytes: 1048576
+  backup_count: 3

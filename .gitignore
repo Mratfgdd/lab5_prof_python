@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.idea/
+.vscode/
+dist/
+build/
+*.egg-info/
+.env
+output/
+logs/
+data/generated/
