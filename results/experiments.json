@@ -1,0 +1,78 @@
+{
+  "strict_vs_tolerant": {
+    "strict": {
+      "total": 51,
+      "valid": 50,
+      "invalid": 1,
+      "below_minimum": 0,
+      "exported": 0,
+      "errors_by_code": {
+        "bad_group": 1
+      },
+      "exported_by_group": {},
+      "outcome": "зупинка: рядок 52, поле 'group': код групи не відповідає формату [bad_group]",
+      "exit_code": 1,
+      "output_exists": false
+    },
+    "tolerant": {
+      "total": 1010,
+      "valid": 1000,
+      "invalid": 10,
+      "below_minimum": 0,
+      "exported": 1000,
+      "errors_by_code": {
+        "bad_group": 10
+      },
+      "exported_by_group": {
+        "PI-21": 247,
+        "PI-22": 254,
+        "PI-23": 256,
+        "PI-24": 243
+      },
+      "outcome": "успішно",
+      "exit_code": 0,
+      "output_exists": true
+    }
+  },
+  "exception_chaining": "Traceback (most recent call last):\n  File \"src\\reliable_importer\\validators.py\", line 91, in _grade\n    grade = Decimal(str(value).strip())\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^\ndecimal.InvalidOperation: [<class 'decimal.ConversionSyntax'>]\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"experiments\\run_experiments.py\", line 199, in exception_chaining\n    RecordValidator(config.processing).validate(2, row)\n  File \"src\\reliable_importer\\validators.py\", line 29, in validate\n    grade = self._grade(row, line_number)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"src\\reliable_importer\\validators.py\", line 93, in _grade\n    raise RecordValidationError(\nreliable_importer.exceptions.RecordValidationError: рядок 2, поле 'average_grade': значення не є числом [bad_number]\n",
+  "atomic_output": {
+    "error": "DataExportError: Помилка запису students.json <- OSError",
+    "output_unchanged": true,
+    "tmp_files": [],
+    "log": [
+      "WARNING: students.json: запис скасовано, тимчасовий файл видалено"
+    ]
+  },
+  "configuration_errors": [
+    {
+      "case": "відсутній config.yaml",
+      "exit_code": 1,
+      "message": "Помилка застосунку: Файл конфігурації не знайдено: data\\generated\\exp5\\absent.yaml (причина: FileNotFoundError)"
+    },
+    {
+      "case": "неправильний YAML",
+      "exit_code": 1,
+      "message": "Помилка застосунку: Некоректний YAML у broken.yaml (причина: ParserError)"
+    },
+    {
+      "case": "немає ключа input",
+      "exit_code": 1,
+      "message": "Помилка застосунку: Некоректна структура конфігурації: KeyError('input') (причина: KeyError)"
+    },
+    {
+      "case": "minimum_grade = 150",
+      "exit_code": 1,
+      "message": "Помилка застосунку: minimum_grade має бути числом від 0 до 100"
+    },
+    {
+      "case": "input file відсутній",
+      "exit_code": 1,
+      "message": "Помилка застосунку: Вхідний файл не знайдено: nope.csv"
+    },
+    {
+      "case": "output directory не існує",
+      "exit_code": 0,
+      "message": "Створюється каталог для students.json"
+    }
+  ]
+}

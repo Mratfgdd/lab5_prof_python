@@ -1,0 +1,3 @@
+{"student_id": 1, "first_name": "Анна", "last_name": "Коваль", "group": "PI-21", "average_grade": 91.5}
+{"student_id": "2", "first_name": "Олег", "last_name": "Мельник", "group": "PI-21", "average_grade": "84.0"}
+{"student_id": 3, "first_name": "Ірина", "last_name": "Бондар", "group": "PI-22", "average_grade": 95}

@@ -1,0 +1,10 @@
+- student_id: 21
+  first_name: Леся
+  last_name: Українка
+  group: PI-24
+  average_grade: "96.5"
+- student_id: 22
+  first_name: Петро
+  last_name: Сагайдак
+  group: PI-23
+  average_grade: 88
